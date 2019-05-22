@@ -29,7 +29,7 @@ type:
 
 statements: statement statements |;
 
-arith_expression
+arith_expression:
 	a = multExpr('+' b = multExpr | '-' c = multExpr)*;
 
 multExpr:
@@ -51,8 +51,8 @@ statement:
 	| if_then_else
 	| printf_statement ';'
 	| scanf_statement ';'
-	| WHILE '(' arith_expression ')' while_statements {if (TRACEON) System.out.println("while value: " + $arith_expression.value); 
-		};
+	| while_statements
+	;
 
 assignment: Identifier '=' arith_expression
            ;
@@ -63,16 +63,20 @@ if_then_else:
 
 
 if_statements returns [int flag]:
-	IF '(' condition ')' if_then_statements {$flag = $condition.result;}
+	IF '(' condition ')' stmt {$flag = $condition.result;}
 ;
 
 else_statements [int flag]:
-	ELSE if_then_statements {
+	ELSE stmt {
                   if (flag > 0) { System.out.println("Here\n"); }
                   System.out.println(flag);}
 			  |;
 
-if_then_statements:
+while_statements:
+	WHILE '(' condition ')' stmt
+;
+
+stmt:
 	statement
 	| '{' statements '}' ;
 
@@ -91,9 +95,6 @@ argument: arg (',' arg)? argument
 arg: arith_expression
    | STRING_LITERAL
    ;
-
-while_statements:
-	'{' statements '}' { if (TRACEON) System.out.println("while-loop"); };
 
 condition returns [int result]
                : a=arith_expression { $result = $a.result; }
