@@ -30,60 +30,75 @@ type:
 statements: statement statements |;
 
 arith_expression
-	returns[int value]:
-	a = multExpr {value = $a.value;if (TRACEON) System.out.println("arith_a: " + $a.value);} (
-		'+' b = multExpr { value = value + $b.value;if (TRACEON) System.out.println("arith_b: " + $b.value);
-			}
-		| '-' c = multExpr { value = value - $c.value;if (TRACEON) System.out.println("arith_c: " + $c.value);
-			}
-	)*;
+	a = multExpr('+' b = multExpr | '-' c = multExpr)*;
 
-multExpr
-	returns[int value]:
-	a = signExpr {value = $a.value;if (TRACEON) System.out.println("mult_a: " + $a.value);} (
-		'*' b = signExpr { value = value * $b.value;if (TRACEON) System.out.println("mult_b: " + $b.value);
-			}
-		| '/' c = signExpr { value = value * $c.value;if (TRACEON) System.out.println("mult_c: " + $c.value);
-			}
-	)*;
+multExpr:
+	a = signExpr ('*' b = signExpr | '/' c = signExpr)*;
 
-signExpr
-	returns[int value]:
-	a = primaryExpr {value = $a.value;if (TRACEON) System.out.println("sign_a: " + $a.value);}
-	| '-' b = primaryExpr {value = $b.value * -1;if (TRACEON) System.out.println("sign_b: " + $b.value);
-		};
+signExpr:
+	a = primaryExpr | '-' b = primaryExpr ;
 
-primaryExpr
-	returns[int value, float f_value]:
-	a = Integer_constant {$value = Integer.parseInt($Integer_constant.text);}
-	| b = Floating_point_constant {$f_value = Float.parseFloat($Floating_point_constant.text);}
+primaryExpr:
+	a = Integer_constant 
+	| b = Floating_point_constant 
 	| c = Identifier
-	| '(' arith_expression ')' { $value = $arith_expression.value; };
+	| '(' arith_expression ')' //grouping expressions so you can make a prior calculation
+	; 
 
 statement:
-	Identifier '=' arith_expression ';' { memory.put($Identifier.text, new Integer($arith_expression.value)); if (TRACEON) System.out.println("final value: " + $arith_expression.value); 
+	assignment ';' { memory.put($Identifier.text, new Integer($arith_expression.value)); if (TRACEON) System.out.println("final value: " + $arith_expression.value); 
 		}
-	| IF '(' arith_expression ')' if_then_statements { if (TRACEON) System.out.println("if-else value: " + $arith_expression.value); 
-		}
-	| IF '(' Identifier '>' arith_expression ')' if_then_statements { if (TRACEON) System.out.println("greater than"); 
-		}
-	| IF '(' Identifier '<' arith_expression ')' if_then_statements { if (TRACEON) System.out.println("less than"); 
-		}
-	| ELSE if_then_statements
-	| PRINTF '(' Identifier ')' ';' { if (TRACEON) System.out.println("printf"); }
-	| PRINTF '(' '%' Identifier ',' Identifier ')' ';' {if (TRACEON) if (TRACEON) System.out.println("printf with one parameter"); 
-		}
-	| SCANF '(' '%' Identifier ',' '&' Identifier ')' ';' {if (TRACEON) if (TRACEON) System.out.println("scanf with integer"); 
-		}
+	| if_then_else
+	| printf_statement ';'
+	| scanf_statement ';'
 	| WHILE '(' arith_expression ')' while_statements {if (TRACEON) System.out.println("while value: " + $arith_expression.value); 
 		};
 
+assignment: Identifier '=' arith_expression
+           ;
+
+if_then_else:
+	if_statements else_statements[$if_statements.flag]
+;
+
+
+if_statements returns [int flag]:
+	IF '(' condition ')' if_then_statements {$flag = $condition.result;}
+;
+
+else_statements [int flag]:
+	ELSE if_then_statements {
+                  if (flag > 0) { System.out.println("Here\n"); }
+                  System.out.println(flag);}
+			  |;
+
 if_then_statements:
 	statement
-	| '{' statements '}' { if (TRACEON) System.out.println("if/else"); };
+	| '{' statements '}' ;
+
+printf_statement:
+	PRINTF '(' argument ')'	
+;
+
+scanf_statement:
+	SCANF '(' argument ')'
+;
+
+argument: arg (',' arg)? argument
+		|
+        ;
+
+arg: arith_expression
+   | STRING_LITERAL
+   ;
 
 while_statements:
 	'{' statements '}' { if (TRACEON) System.out.println("while-loop"); };
+
+condition returns [int result]
+               : a=arith_expression { $result = $a.result; }
+                 (RelationOP b=arith_expression { $result=$b.result; } )*
+               ;
 
 /* description of the tokens */
 FLOAT: 'float';
@@ -104,6 +119,16 @@ Identifier: ('a' ..'z' | 'A' ..'Z' | '_') (
 	)*;
 Integer_constant: '0' ..'9'+;
 Floating_point_constant: '0' ..'9'+ '.' '0' ..'9'+;
+RelationOP: '>' |'>=' | '<' | '<=' | '==' | '!=';
 
-WS: (' ' | '\t' | '\r' | '\n' | '"' | ',' | '(' | ')') {$channel=HIDDEN;};
+WS: (' ' | '\t' | '\r' | '\n' | '"' | ',' | '(' | ')'){$channel=HIDDEN;};
 COMMENT: '/*' .* '*/' {$channel=HIDDEN;};
+
+STRING_LITERAL
+    :  '"' ( EscapeSequence | ~('\\'|'"') )* '"'
+    ;//may not occur '\\' and '"' at the current place
+
+fragment
+EscapeSequence
+    :   '\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\')
+    ;//like '\n', '\\\', '\r', etc.
