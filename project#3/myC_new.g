@@ -1,8 +1,7 @@
 grammar myC_new;
 
 options {
-	language = Java;
-	backtrack = true;
+   language = Java;
 }
 
 @header {
@@ -15,99 +14,77 @@ options {
     HashMap memory = new HashMap();
 }
 
-program:
-	VOID MAIN '(' ')' '{' declarations statements '}';
+program:VOID MAIN '(' ')' '{' declarations statements'}'
+        {if (TRACEON) System.out.println("VOID MAIN () {declarations statements}");};
 
-declarations:
-	type Identifier ';' declarations 
-	| ;
+declarations: type Identifier ';' declarations
+             { if (TRACEON) System.out.println("declarations: type Identifier : declarations"); }
+           | { if (TRACEON) System.out.println("declarations: ");} ;
 
-type:
-	INT | FLOAT ;
+type:INT { if (TRACEON) System.out.println("type: INT"); }
+   | FLOAT {if (TRACEON) System.out.println("type: FLOAT"); };
 
-statements: statement statements |;
+statements:statement statements
+        |;
 
-arith_expression:
-	multExpr ('+' multExpr | '-' multExpr)*;
+arith_expression returns  [int value, float f_value]
+: a=multExpr {$value = $a.value; $f_value = $a.f_value; $f_value = $a.f_value; if (TRACEON) System.out.println("arith_a: " + $a.value);}
+( '+' b=multExpr { $value = $value + $b.value; $f_value = $f_value + $b.f_value; if (TRACEON) System.out.println("arith_b: " + $b.value);}
+| '-' c=multExpr { $value = $value - $c.value; $f_value = $f_value - $c.f_value; if (TRACEON) System.out.println("arith_c: " + $c.value);}
+)*
+                  ;
 
-multExpr:
-	signExpr ('*' signExpr | '/' signExpr)*;
+multExpr returns  [int value, float f_value]
+: a=signExpr {$value = $a.value; $f_value = $a.f_value; if (TRACEON) System.out.println("mult_a: " + $a.value);}
+          ( '*' b=signExpr { $value = $value * $b.value;  $f_value = $f_value * $b.f_value; if (TRACEON) System.out.println("mult_b: " + $b.value);}
+          | '/' c=signExpr { $value = $value / $c.value;  $f_value = $f_value / $c.f_value; if (TRACEON) System.out.println("mult_c: " + $c.value);}
+		  )*
+		  ;
 
-signExpr:
-	primaryExpr | '-' primaryExpr ;
-
-/* primaryExpr:
-	Integer_constant 
-	| Floating_point_constant 
-	| Identifier
-	| '(' arith_expression ')' 
-	; */
-
-primaryExpr: 
-	Integer_constant 
-	| Floating_point_constant
-	| Identifier
-	| '&' Identifier
-	| '%' Identifier
-	| '(' arith_expression ')'  //grouping expressions so you can make a prior calculation
-	;
-
-statement:
-	assignment ';' 
-	| if_then_else
-	| printf_statement ';'
-	| scanf_statement ';'
-	| while_statements
-	;
-
-assignment: Identifier '=' arith_expression
+signExpr returns [int value, float f_value]
+: a=primaryExpr {$value = $a.value;$f_value = $a.f_value;if (TRACEON) System.out.println("sign_a: " + $a.value);}
+        | '-' b=primaryExpr {$value = $b.value * -1; $f_value = $b.f_value; if (TRACEON) System.out.println("sign_b: " + $b.value);}
+		;
+		  
+primaryExpr returns [int value, float f_value]
+: a=Integer_constant {$value = Integer.parseInt($Integer_constant.text);}
+           | b=Floating_point_constant {$f_value = Float.parseFloat($Floating_point_constant.text);}
+           | c=Identifier 
+           | '(' arith_expression ')' { $value = $arith_expression.value; $f_value = $arith_expression.f_value; }
            ;
 
-if_then_else:
-	if_statements else_statements
-;
 
+statement: Identifier '=' arith_expression ';'
+ { memory.put($Identifier.text, new Float($arith_expression.value)); if (TRACEON) System.out.println("final value: " +$arith_expression.value +","+$arith_expression.f_value); }
+         | if_statements else_statements*
+         | PRINTF '(' Identifier ')' ';'{ if (TRACEON) System.out.println("printf"); }
+         | PRINTF '(' '%' Identifier ',' Identifier ')' ';'
+         {if (TRACEON) if (TRACEON) System.out.println("printf with one parameter"); }
+         | SCANF '(' '%'  Identifier ',' '&' Identifier ')' ';'
+         {if (TRACEON) if (TRACEON) System.out.println("scanf with integer"); }
+         | WHILE '(' arith_expression ')' while_statements {if (TRACEON) System.out.println("while value: " + $arith_expression.value + "," + $arith_expression.f_value); }
+		 ;
+
+if_then_statements: statement
+                  | '{' statements '}' { if (TRACEON) System.out.println("if/else"); }
+				  ;
+else_statements:
+	ELSE if_then_statements;
 
 if_statements:
-	IF '(' condition ')' stmt 
-;
+	IF '(' condition ')' if_then_statements ;
 
-else_statements:
-	ELSE stmt 
-			  |;
-
-while_statements:
-	WHILE '(' condition ')' stmt
-;
-
-stmt:
-	statement
-	| '{' statements '}' ;
-
-printf_statement:
-	PRINTF '(' argument ')'	
-;
-
-scanf_statement:
-	SCANF '(' argument ')'
-;
-
-argument: arg (',' arg)? argument
-		|
+condition : arith_expression 
+        (RelationOP arith_expression)*
         ;
+RelationOP: '>' |'>=' | '<' | '<=' | '==' | '!=';
 
-arg: arith_expression
-   | STRING_LITERAL
-   ;
+while_statements: '{' statements '}' { if (TRACEON) System.out.println("while-loop"); };
 
-condition 
-               : arith_expression 
-                 (RelationOP arith_expression)*
-               ;
-
+		   
 /* description of the tokens */
-FLOAT: 'float';
-INT: 'int';
+FLOAT:'float';
+INT:'int';
 MAIN: 'main';
 VOID: 'void';
 IF: 'if';
@@ -116,24 +93,10 @@ WHILE: 'while';
 SCANF: 'scanf';
 ELSE: 'else';
 
-Identifier: ('a' ..'z' | 'A' ..'Z' | '_') (
-		'a' ..'z'
-		| 'A' ..'Z'
-		| '0' ..'9'
-		| '_'
-	)*;
-Integer_constant: '0' ..'9'+;
-Floating_point_constant: '0' ..'9'+ '.' '0' ..'9'+;
-RelationOP: '>' |'>=' | '<' | '<=' | '==' | '!=';
+Identifier:('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'0'..'9'|'_')*;
+Integer_constant:'0'..'9'+;
+Floating_point_constant:'0'..'9'+ '.' '0'..'9'+;
 
-WS: (' ' | '\t' | '\r' | '\n' | '"' | ',' | '(' | ')'){$channel=HIDDEN;};
-COMMENT: '/*' .* '*/' {$channel=HIDDEN;};
 
-STRING_LITERAL
-    :  '"' ( EscapeSequence | ~('\\'|'"') )* '"'
-    ;//may not occur '\\' and '"' at the current place
-
-fragment
-EscapeSequence
-    :   '\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\')
-    ;//like '\n', '\\\', '\r', etc.
+WS:( ' ' | '\t' | '\r' | '\n' | '"' | ',' | '(' | ')') {$channel=HIDDEN;};
+COMMENT:'/*' .* '*/' {$channel=HIDDEN;};

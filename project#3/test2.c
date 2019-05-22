@@ -3,6 +3,8 @@ void main()
 		int a;
 		float b;
 
+		b = 7.14;
+		a = 100;
 		printf("enter");
 		scanf("%d", &a);
 
