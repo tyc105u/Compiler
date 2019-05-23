@@ -1,7 +1,5 @@
-void main()
-{
-		int a;
-		int b;
-		b = a+100;
-		a = b/1;
+void main(){
+	int a;
+	a = 3*(1+2);
+	printf("hello, world\ntest\n%d, a");
 }
