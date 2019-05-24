@@ -111,20 +111,24 @@ condition : arith_expression
         ;
 RelationOP: '>' |'>=' | '<' | '<=' | '==' | '!=';
 
-func_no_return_stmt: PRINTF '(' argument ')'{
-        System.out.println($argument.s);
-
+func_no_return_stmt: PRINTF '(' argument (',' arith_expression)? ')'{
+        String tmp = $argument.s;
+        String num = Integer.toString((int)$arith_expression.f_value);
+        if(tmp.contains("\%d") == true)
+                tmp = tmp.replace("\%d", num);
+        System.out.println(tmp);
 }
                    ;
 argument returns[String s]
 : c=arg (',' arg)* {
         s = $c.text;
         s = s.substring(1, s.length()-1);
-        System.out.println(s.contains("\\n"));
+        //System.out.println(s.contains("\%d"));
         if(s.contains("\\n") == true)
                 s = s.replace("\\n", "\n");
+        if(s.contains("\\r") == true)
+                s = s.replace("\\r", "\r");
 }
-| arith_expression
 ;
 
 arg :
