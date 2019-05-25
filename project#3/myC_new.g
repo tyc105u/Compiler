@@ -7,6 +7,7 @@ options {
 @header {
     // import packages here.
     import java.util.HashMap;
+    import java.util.Scanner;
 }
 
 @members {
@@ -85,16 +86,10 @@ primaryExpr returns [float f_value]
 statement
 : Identifier '=' arith_expression ';'{
         memory.put($Identifier.text, new Float($arith_expression.f_value));
-        if (TRACEON) 
-                System.out.println("final value: " + $arith_expression.f_value);
-
 }
 | if_statements[1] 
 | print_stmt[1] ';'
-| SCANF '(' '%'  Identifier ',' '&' Identifier ')' ';'{
-        if (TRACEON)
-                System.out.println("scanf with integer");
-        }
+| scanf_stmt[1] ';'
 ;
 
 if_statements[int flag]:
@@ -114,6 +109,7 @@ Identifier '=' arith_expression ';'{
 }
 | if_statements[flag]
 | print_stmt[flag] ';'
+| scanf_stmt[flag] ';'
 ;
 
 condition[int x] returns [int flag]:
@@ -186,7 +182,18 @@ print_stmt [int flag]: PRINTF '(' argument (',' arith_expression)?  ')'{
 }
 ;
 
-
+scanf_stmt[int flag] : SCANF '(' argument (',' '&' Identifier) ')' {
+        if(flag == 1){
+                String c = $argument.s;
+                System.out.println(c);
+                Scanner Obj = new Scanner(System.in);
+                if(c.contains("\%d") == true || c.contains("\%f") == true){
+                        float num = Obj.nextFloat();
+                        memory.put($Identifier.text, new Float(num));
+                }
+        }
+}
+;
 argument returns[String s]
 : c=arg (',' arg)* {
         s = $c.text;

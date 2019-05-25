@@ -11,4 +11,7 @@ void main(){
 		a = 0;
 		printf("interger: %d", a);
 	}
+	if(b < 0){
+		printf("i won't do this.");
+	}
 }

@@ -3,9 +3,8 @@ void main()
 		int a;
 		float b;
 
-		a = b+1;
-		if (a) { a = (2+4)-3; }
-		printf("hello");
-		printf("%a", d);
-		while(a) { a = b-1; }
+		scanf("%d", &a);
+		printf("input number: %d", a);
+		scanf("%f", &b);
+		printf("float number: %f", b);
 }
