@@ -1,15 +1,17 @@
-void main()
-{
-		int a;
-		float b;
-
-		b = 7.14;
-		a = 100;
-		printf("enter");
-		scanf("%d", &a);
-
-		if(a > 10){ b = 3 * (a + 3.14);}
-		else{a = b * (b - 3.14);}
-
-		printf("%f", b);
+void main(){
+	int a;
+	float b;
+	a = 3*(1+2);
+	b = 3.14 ;
+	b = b * 5;
+	printf("hello, %f world for the test\n", b);
+	printf("interger: %d", a);
+	printf("no param\r");
+	if(a >= 0){
+		a = 0;
+		printf("interger: %d", a);
+	}
+	if(b < 0){
+		printf("i won't do this.");
+	}
 }
