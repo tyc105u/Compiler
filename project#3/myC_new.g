@@ -90,28 +90,85 @@ statement
 
 }
 | if_statements else_statements*
-| func_no_return_stmt ';'
+| print_stmt ';'
 | SCANF '(' '%'  Identifier ',' '&' Identifier ')' ';'{
         if (TRACEON)
                 System.out.println("scanf with integer");
         }
 ;
 
-if_then_statements: statement
+if_then_statements : statement
                   | '{' statements '}' { if (TRACEON) System.out.println("if/else"); }
 				  ;
 else_statements:
 	ELSE if_then_statements;
 
-if_statements:
-	IF '(' condition ')' if_then_statements ;
+if_statements returns [int exec_flag]:
+	IF '(' condition ')' if_then_statements{ 
+                $exec_flag = $condition.flag;
+                if($condition.flag == 1)
+                        System.out.println($condition.flag);
+                else
+                        System.out.println(0);
+}
+;
 
-condition : arith_expression 
-        (RelationOP arith_expression)*
-        ;
-RelationOP: '>' |'>=' | '<' | '<=' | '==' | '!=';
+condition returns [int flag]:
+a=arith_expression
+(
+        RelationOP b=arith_expression{
+        switch($RelationOP.text){
+                case ">=":
+                        if($a.f_value >= $b.f_value)
+                                flag = 1;
+                        else
+                                flag = 0;
+                        break;
+                case ">":
+                        if($a.f_value > $b.f_value)
+                                flag = 1;
+                        else
+                                flag = 0;
+                        break;
+                case "<=":
+                        if($a.f_value <= $b.f_value)
+                                flag = 1;
+                        else
+                                flag = 0;
+                        break;
+                case "<":
+                        if($a.f_value < $b.f_value)
+                                flag = 1;
+                        else
+                                flag = 0;
+                        break;
+                case "==":
+                        if($a.f_value == $b.f_value)
+                                flag = 1;
+                        else
+                                flag = 0;
+                        break;
+                case "!=":
+                        if($a.f_value != $b.f_value)
+                                flag = 1;
+                        else
+                                flag = 0;
+                        break;
+        }
+        
+}
+)*
+;
+RelationOP:
+'>' 
+|'>=' 
+| '<' 
+| '<=' 
+| '==' 
+| '!='
+;
 
-func_no_return_stmt: PRINTF '(' argument (',' arith_expression)?  ')'{
+print_stmt: PRINTF '(' argument (',' arith_expression)?  ')'{
         String tmp = $argument.s;
         String num = Integer.toString((int)$arith_expression.f_value);
         if(tmp.contains("\%d") == true)
