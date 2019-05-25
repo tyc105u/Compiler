@@ -89,71 +89,75 @@ statement
                 System.out.println("final value: " + $arith_expression.f_value);
 
 }
-| if_statements else_statements*
-| print_stmt ';'
+| if_statements[1] 
+| print_stmt[1] ';'
 | SCANF '(' '%'  Identifier ',' '&' Identifier ')' ';'{
         if (TRACEON)
                 System.out.println("scanf with integer");
         }
 ;
 
-if_then_statements : statement
-                  | '{' statements '}' { if (TRACEON) System.out.println("if/else"); }
-				  ;
-else_statements:
-	ELSE if_then_statements;
-
-if_statements returns [int exec_flag]:
-	IF '(' condition ')' if_then_statements{ 
-                $exec_flag = $condition.flag;
-                if($condition.flag == 1)
-                        System.out.println($condition.flag);
-                else
-                        System.out.println(0);
-}
+if_statements[int flag]:
+	IF '(' condition[flag] ')' if_then_statements[$condition.flag] 
 ;
 
-condition returns [int flag]:
+if_then_statements[int flag]:
+if_then_statement[flag]
+|'{' if_then_statement[flag] if_then_statements[flag] '}'
+|
+;
+
+if_then_statement[int flag]: 
+Identifier '=' arith_expression ';'{
+        if (flag == 1) 
+                memory.put($Identifier.text, new Float($arith_expression.f_value));
+}
+| if_statements[flag]
+| print_stmt[flag] ';'
+;
+
+condition[int x] returns [int flag]:
 a=arith_expression
 (
         RelationOP b=arith_expression{
-        switch($RelationOP.text){
-                case ">=":
-                        if($a.f_value >= $b.f_value)
-                                flag = 1;
-                        else
-                                flag = 0;
-                        break;
-                case ">":
-                        if($a.f_value > $b.f_value)
-                                flag = 1;
-                        else
-                                flag = 0;
-                        break;
-                case "<=":
-                        if($a.f_value <= $b.f_value)
-                                flag = 1;
-                        else
-                                flag = 0;
-                        break;
-                case "<":
-                        if($a.f_value < $b.f_value)
-                                flag = 1;
-                        else
-                                flag = 0;
-                        break;
-                case "==":
-                        if($a.f_value == $b.f_value)
-                                flag = 1;
-                        else
-                                flag = 0;
-                        break;
-                case "!=":
-                        if($a.f_value != $b.f_value)
-                                flag = 1;
-                        else
-                                flag = 0;
-                        break;
+        if(x == 1)
+                switch($RelationOP.text){
+                        case ">=":
+                                if($a.f_value >= $b.f_value)
+                                        flag = 1;
+                                else
+                                        flag = 0;
+                                break;
+                        case ">":
+                                if($a.f_value > $b.f_value)
+                                        flag = 1;
+                                else
+                                        flag = 0;
+                                break;
+                        case "<=":
+                                if($a.f_value <= $b.f_value)
+                                        flag = 1;
+                                else
+                                        flag = 0;
+                                break;
+                        case "<":
+                                if($a.f_value < $b.f_value)
+                                        flag = 1;
+                                else
+                                        flag = 0;
+                                break;
+                        case "==":
+                                if($a.f_value == $b.f_value)
+                                        flag = 1;
+                                else
+                                        flag = 0;
+                                break;
+                        case "!=":
+                                if($a.f_value != $b.f_value)
+                                        flag = 1;
+                                else
+                                        flag = 0;
+                                break;
         }
         
 }
@@ -168,15 +172,17 @@ RelationOP:
 | '!='
 ;
 
-print_stmt: PRINTF '(' argument (',' arith_expression)?  ')'{
-        String tmp = $argument.s;
-        String num = Integer.toString((int)$arith_expression.f_value);
-        if(tmp.contains("\%d") == true)
-                tmp = tmp.replace("\%d", num);
-        String f_num = Float.toString($arith_expression.f_value);
-        if(tmp.contains("\%f") == true)
-                tmp = tmp.replace("\%f", f_num);
-        System.out.println(tmp);
+print_stmt [int flag]: PRINTF '(' argument (',' arith_expression)?  ')'{
+        if(flag == 1){
+                String tmp = $argument.s;
+                String num = Integer.toString((int)$arith_expression.f_value);
+                if(tmp.contains("\%d") == true)
+                        tmp = tmp.replace("\%d", num);
+                String f_num = Float.toString($arith_expression.f_value);
+                if(tmp.contains("\%f") == true)
+                        tmp = tmp.replace("\%f", f_num);
+                System.out.println(tmp);
+        }
 }
 ;
 
